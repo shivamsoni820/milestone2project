@@ -175,7 +175,10 @@ function switchView(savedOnly) {
 
 searchInput.oninput = renderCoins;
 sortSelect.onchange = renderCoins;
-refreshBtn.onclick = loadCoins;
+refreshBtn.onclick = function () {
+  searchInput.value = "";
+  loadCoins();
+};
 retryBtn.onclick = loadCoins;
 getId("marketNav").onclick = () => switchView(false);
 getId("watchlistNav").onclick = () => switchView(true);

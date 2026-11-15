@@ -204,7 +204,7 @@
   </template>
 
   <!-- Coin details popup -->
-  <dialog id="detailModal" aria-labelledby="detailName"
+  <div id="detailModal" aria-labelledby="detailName"
     class="m-auto w-96 rounded-lg border border-slate-200 bg-white p-6 text-slate-900 shadow-lg backdrop:bg-slate-900/30">
     <div class="flex items-center gap-3">
       <img id="detailImage" alt="" class="size-9 rounded-full">
@@ -225,7 +225,7 @@
     <p id="detailPrice" class="mt-5 text-2xl font-semibold"></p>
     <p id="detailChange" class="mt-1 text-sm"></p>
 
-    <dl class="mt-5 space-y-3 border-t border-slate-200 pt-4 text-sm">
+    <div class="mt-5 space-y-3 border-t border-slate-200 pt-4 text-sm">
       <div class="flex justify-between">
         <dt>Market cap</dt>
         <dd id="detailCap"></dd>
@@ -245,12 +245,12 @@
         <dt>24h volume</dt>
         <dd id="detailVolume"></dd>
       </div>
-    </dl>
-  </dialog>
+      </dl>
+    </div>
 
-  <!-- Temporary message when a coin is saved or removed -->
-  <div id="toast" role="status"
-    class="fixed bottom-6 right-6 rounded-md bg-slate-900 px-4 py-3 text-sm text-white empty:hidden"></div>
+    <!-- Temporary message when a coin is saved or removed -->
+    <div id="toast" role="status"
+      class="fixed bottom-6 right-6 rounded-md bg-slate-900 px-4 py-3 text-sm text-white empty:hidden"></div>
 
 </body>
 
