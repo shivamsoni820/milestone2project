@@ -98,13 +98,13 @@
           <label>
             <span class="sr-only">Sort coins</span>
 
-            <select id="sortSelect" class="rounded-md border border-slate-200 bg-white px-3 py-2">
-              <option value="market_cap">Market cap</option>
-              <option value="price_high">Price: high to low</option>
-              <option value="price_low">Price: low to high</option>
-              <option value="change_high">24h change: high to low</option>
-              <option value="change_low">24h change: low to high</option>
-            </select>
+            <ul id="sortOptions" class="flex flex-wrap gap-3 text-sm" aria-label="Sort coins">
+              <li><label><input type="radio" name="sort" value="market_cap" checked> Market Cap</label></li>
+              <li><label><input type="radio" name="sort" value="price_high"> Highest Price</label></li>
+              <li><label><input type="radio" name="sort" value="price_low"> Lowest Price</label></li>
+              <li><label><input type="radio" name="sort" value="change_high"> Top Gainers</label></li>
+              <li><label><input type="radio" name="sort" value="change_low"> Top Losers</label></li>
+            </ul>
           </label>
         </div>
       </div>
