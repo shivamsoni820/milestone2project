@@ -9,10 +9,8 @@ const refreshBtn = getId("refreshBtn");
 const retryBtn = getId("retryBtn");
 const searchInput = getId("searchInput");
 const sortOptions = getId("sortOptions");
-const sortSelect = getId("sortSelect");
 const marketNav = getId("marketNav");
 const watchlistNav = getId("watchlistNav");
-const detailModal = getId("detailModal");
 
 let coins = [];
 let watchlist = [];
@@ -39,16 +37,10 @@ function dollars(value, compact = false) {
   });
 }
 
-function showChange(element, change) {
-  element.textContent = change == null ? "—" : change.toFixed(2) + "%";
-  element.classList.toggle("text-emerald-700", change != null && change >= 0);
-  element.classList.toggle("text-red-700", change != null && change < 0);
-}
-
-function showStatus(message, retry = false) {
+function showStatus(message, showRetry = false) {
   setText("statusMessage", message);
   getId("statusRow").hidden = !message;
-  retryBtn.hidden = !retry;
+  retryBtn.hidden = !showRetry;
 }
 
 function updateSummary() {
@@ -61,32 +53,32 @@ function updateSummary() {
   setText("watchCount", watchlist.length);
 }
 
-// Show the skeleton while market data is loading
+// Load market data and hide the skeleton when the request finishes
 async function loadCoins() {
   if (refreshBtn.disabled) return;
 
   refreshBtn.disabled = true;
-  loadingRows.hidden = false;
   coinList.replaceChildren();
   showStatus("");
+  loadingRows.hidden = false;
 
   try {
     const response = await fetch(apiUrl, {
       signal: AbortSignal.timeout(15000)
     });
 
-    if (!response.ok) throw new Error("API request failed");
+    if (!response.ok) throw new Error("Request failed");
 
     const data = await response.json();
     if (!Array.isArray(data)) throw new Error("Invalid market data");
 
     coins = data;
 
-    if (coins.length) {
-      setText("lastUpdated", "Updated " + new Date().toLocaleTimeString());
-    } else {
+    if (coins.length === 0) {
       setText("lastUpdated", "");
       showStatus("No data found.", true);
+    } else {
+      setText("lastUpdated", "Updated " + new Date().toLocaleTimeString());
     }
   } catch {
     coins = [];
@@ -100,7 +92,7 @@ async function loadCoins() {
   }
 }
 
-// Filter, sort, and display the coin rows
+// Filter and sort the coins before adding them to the table
 function renderCoins() {
   if (refreshBtn.disabled || coins.length === 0) return;
 
@@ -112,54 +104,58 @@ function renderCoins() {
   }
 
   const search = searchInput.value.trim().toLowerCase();
-  const sort = sortOptions?.querySelector("input:checked")?.value
-    ?? sortSelect?.value
-    ?? "market_cap";
+  const sort = sortOptions.querySelector("input:checked").value;
 
-  const shown = coins.filter((coin) => {
-    const matches = coin.name.toLowerCase().includes(search) ||
-      coin.symbol.toLowerCase().includes(search);
+  const visibleCoins = coins.filter((coin) => {
+    const name = coin.name.toLowerCase();
+    const symbol = coin.symbol.toLowerCase();
+    const matchesSearch = name.includes(search) || symbol.includes(search);
 
-    return matches && (!showWatchlist || watchlist.includes(coin.id));
+    return matchesSearch && (!showWatchlist || watchlist.includes(coin.id));
   });
 
   if (sort === "price_high") {
-    shown.sort((a, b) => b.current_price - a.current_price);
+    visibleCoins.sort((a, b) => b.current_price - a.current_price);
   } else if (sort === "price_low") {
-    shown.sort((a, b) => a.current_price - b.current_price);
+    visibleCoins.sort((a, b) => a.current_price - b.current_price);
   } else if (sort === "change_high") {
-    shown.sort((a, b) => b.price_change_percentage_24h - a.price_change_percentage_24h);
+    visibleCoins.sort((a, b) => b.price_change_percentage_24h - a.price_change_percentage_24h);
   } else if (sort === "change_low") {
-    shown.sort((a, b) => a.price_change_percentage_24h - b.price_change_percentage_24h);
+    visibleCoins.sort((a, b) => a.price_change_percentage_24h - b.price_change_percentage_24h);
   }
 
-  showStatus(shown.length ? "" : "No matching coins found.");
+  showStatus(visibleCoins.length ? "" : "No matching coins found.");
 
-  for (const coin of shown) {
+  for (const coin of visibleCoins) {
     const row = getId("coinTemplate").content.cloneNode(true);
     const field = (name) => row.querySelector("[data-coin-" + name + "]");
     const saved = watchlist.includes(coin.id);
+    const change = coin.price_change_percentage_24h;
 
     row.querySelector("img").src = coin.image;
     field("name").textContent = coin.name;
     field("symbol").textContent = coin.symbol.toUpperCase();
     field("price").textContent = dollars(coin.current_price);
     field("cap").textContent = dollars(coin.market_cap, true);
-    showChange(field("change"), coin.price_change_percentage_24h);
+
+    const changeCell = field("change");
+    changeCell.textContent = change == null ? "—" : change.toFixed(2) + "%";
+    if (change != null) {
+      changeCell.classList.add(change < 0 ? "text-red-700" : "text-emerald-700");
+    }
 
     const saveBtn = field("save");
     saveBtn.id = "save-" + coin.id;
-    saveBtn.setAttribute("aria-label", "Save " + coin.name + " to watchlist");
+    saveBtn.setAttribute("aria-label", coin.name + " watchlist");
     saveBtn.setAttribute("aria-pressed", saved);
     saveBtn.querySelector("i").classList.add(saved ? "fa-solid" : "fa-regular");
-
     saveBtn.onclick = () => saveCoin(coin.id);
-    field("details").onclick = () => showDetails(coin);
 
     coinList.append(row);
   }
 }
 
+// Add or remove a coin and store the watchlist
 function saveCoin(id) {
   const index = watchlist.indexOf(id);
   let message;
@@ -185,46 +181,28 @@ function saveCoin(id) {
   updateSummary();
   renderCoins();
 
-  const saveBtn = getId("save-" + id) || watchlistNav;
-  saveBtn.focus();
-}
-
-function showDetails(coin) {
-  getId("detailImage").src = coin.image;
-  setText("detailName", coin.name);
-  setText("detailSymbol", coin.symbol.toUpperCase());
-  setText("detailPrice", dollars(coin.current_price));
-  setText("detailCap", dollars(coin.market_cap, true));
-  setText("detailHigh", dollars(coin.high_24h));
-  setText("detailLow", dollars(coin.low_24h));
-  setText("detailVolume", dollars(coin.total_volume, true));
-
-  const change = getId("detailChange");
-  showChange(change, coin.price_change_percentage_24h);
-  change.textContent += " (24h)";
-
-  detailModal.showModal();
+  const button = getId("save-" + id) || watchlistNav;
+  button.focus();
 }
 
 function switchView(savedOnly) {
   showWatchlist = savedOnly;
+
   marketNav.setAttribute("aria-pressed", !savedOnly);
   watchlistNav.setAttribute("aria-pressed", savedOnly);
-  setText("sectionTitle", savedOnly ? "My watchlist" : "Top 20 Cryptocurrencies");
+  setText("sectionTitle", savedOnly ? "My Watchlist" : "Top 20 Cryptocurrencies");
+
   renderCoins();
 }
 
-// Connect the controls
+// Connect buttons and inputs
 searchInput.oninput = renderCoins;
-if (sortOptions) sortOptions.onchange = renderCoins;
-if (sortSelect) sortSelect.onchange = renderCoins;
-
+sortOptions.onchange = renderCoins;
 refreshBtn.onclick = loadCoins;
 retryBtn.onclick = loadCoins;
 marketNav.onclick = () => switchView(false);
 watchlistNav.onclick = () => switchView(true);
 
-// Prepare six skeleton rows and load the first results
 for (let i = 0; i < 6; i++) {
   loadingRows.append(getId("skeletonTemplate").content.cloneNode(true));
 }
