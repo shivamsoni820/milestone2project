@@ -98,8 +98,14 @@ function renderCoins() {
   if (sort === "change_high") shown.sort((a, b) => b.price_change_percentage_24h - a.price_change_percentage_24h);
   if (sort === "change_low") shown.sort((a, b) => a.price_change_percentage_24h - b.price_change_percentage_24h);
 
-  coinList.replaceChildren();
-  showStatus(shown.length ? "" : "No matching coins found.");
+coinList.replaceChildren();
+
+if (showWatchlist && watchlist.length === 0) {
+  showStatus("Your watchlist is empty. Save a coin from Markets.");
+  return;
+}
+
+showStatus(shown.length ? "" : "No matching coins found.");
 
   for (const coin of shown) {
     const row = getId("coinTemplate").content.cloneNode(true);
